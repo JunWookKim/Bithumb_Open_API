@@ -12,6 +12,8 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.example.bithumb_open_api.databinding.ActivityMainBinding
 import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Response
 
 
 class MainActivity : AppCompatActivity() {
@@ -34,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     "TITAN", "REQ", "CSPR", "AVAX", "TDROP", "SPRT", "NPT", "REI", "T", "MBX", "GMT")
     var infoList : MutableList<Map<String, String>> = mutableListOf(mapOf<String, String>("" to ""))
     var clickedPosition = 0
+    val retrofitService = IRetrofitService.create()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +61,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         Log.d("infoList", infoList.toString())
+        getDataFromRetrofit()
+    }
+
+    private fun getDataFromRetrofit(){
+        retrofitService.getData().enqueue(object : retrofit2.Callback<ResponseModel>{
+            override fun onResponse(call: Call<ResponseModel>, response: Response<ResponseModel>) {
+                Log.d("Retrofit_success", response.body()?.data.toString())
+            }
+
+            override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
+                Log.d("Retrofit_failed", t.message.toString())
+            }
+        })
     }
 
     private fun getData(coinList: Array<String>, recyclerAdapter: RecyclerAdapter) {

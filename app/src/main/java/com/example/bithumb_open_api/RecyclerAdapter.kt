@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bithumb_open_api.databinding.CardviewBinding
 
-class RecyclerAdapter(private val coinList : Array<String>, private val infoList : MutableList<Map<String, String>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(){
+class RecyclerAdapter(private val coinList : Array<String>, private var infoList : MutableList<Map<String, String>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(){
 
     inner class MyViewHolder(val binding : CardviewBinding) : RecyclerView.ViewHolder(binding.root)
 
