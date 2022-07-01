@@ -1,13 +1,12 @@
 package com.example.bithumb_open_api
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bithumb_open_api.databinding.CardviewBinding
 
-class RecyclerAdapter(private val coinList : Array<String>, private var infoList : MutableList<Map<String, String>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(){
+class RecyclerAdapter(private val keyList : MutableList<String>, private var infoList : MutableList<Map<String, String>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(){
 
     inner class MyViewHolder(val binding : CardviewBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -17,7 +16,7 @@ class RecyclerAdapter(private val coinList : Array<String>, private var infoList
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val binding =(holder as RecyclerAdapter.MyViewHolder).binding
         with(binding){
-            textName.text = coinList[position]
+            textName.text = keyList[position]
             textOpening.text = infoList[position]["opening_price"]
             textClosing.text = infoList[position]["closing_price"]
             textMin.text = infoList[position]["min_price"]
@@ -47,7 +46,7 @@ class RecyclerAdapter(private val coinList : Array<String>, private var infoList
     private lateinit var itemClickListener : OnItemClickListener
 
     override fun getItemCount(): Int {
-        return coinList.size
+        return keyList.size
     }
 
 }

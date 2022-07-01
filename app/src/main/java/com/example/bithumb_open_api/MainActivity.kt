@@ -1,7 +1,6 @@
 package com.example.bithumb_open_api
 
 import android.os.Bundle
-import android.os.Parcelable
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -18,7 +17,7 @@ import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
     private val binding by lazy{ActivityMainBinding.inflate(layoutInflater)}
-    private val coinList = arrayOf("BTC", "ETH", "ETC", "XRP", "BCH", "QTUM", "BTG", "EOS", "ICX",
+    private val coinList = mutableListOf("BTC", "ETH", "ETC", "XRP", "BCH", "QTUM", "BTG", "EOS", "ICX",
     "TRX", "ELF", "OMG", "KNC", "GLM", "ZIL", "WAXP", "POWR", "LRC", "STEEM", "STRAX", "ZRX",
     "REP", "SNT", "ADA", "CTXC", "BAT", "THETA", "LOOM", "WAVES", "LINK", "ENJ", "VET", "MTL",
     "IOST", "TMTG", "QKC", "ATOLO", "AMO", "BSV", "ORBS", "TFUEL", "VALOR", "CON", "ANKR", "MIX",
@@ -34,7 +33,8 @@ class MainActivity : AppCompatActivity() {
     "DOT", "ATOM", "SSX", "TEMCO", "HIBS", "DOGE", "KSM", "CTK", "XYM", "BNB", "NFT", "SUN", "XEC",
     "PCI", "SOL", "EGLD", "GO", "DFA", "C98", "MED", "1INCH", "BOBA", "GALA", "BTT", "EFI", "JASMY",
     "TITAN", "REQ", "CSPR", "AVAX", "TDROP", "SPRT", "NPT", "REI", "T", "MBX", "GMT")
-    var infoList : MutableList<Map<String, String>> = mutableListOf(mapOf<String, String>("" to ""))
+    var keyList = mutableListOf<String>()
+    var infoList = mutableListOf(mapOf<String, String>())
     var clickedPosition = 0
     val retrofitService = IRetrofitService.create()
 
@@ -42,32 +42,57 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        val recyclerAdapter = RecyclerAdapter(coinList, infoList)
-        recyclerAdapter.setItemClickListener(object: RecyclerAdapter.OnItemClickListener{
-            override fun onClick(v: View, positon: Int) {
-                clickedPosition = positon
+//        val recyclerAdapter = RecyclerAdapter(coinList, infoList)
+//        recyclerAdapter.setItemClickListener(object: RecyclerAdapter.OnItemClickListener{
+//            override fun onClick(v: View, positon: Int) {
+//                clickedPosition = positon
+//                Log.d("position : ", clickedPosition.toString())
+//            }
+//        })
+//        getDataFromVolley(coinList, recyclerAdapter)
+//        binding.btnRefresh.setOnClickListener {
+//            getDataFromVolley(coinList, recyclerAdapter)
+//        }
+
+        val retrofitRecyclerAdapter = RecyclerAdapter(keyList, infoList)
+        retrofitRecyclerAdapter.setItemClickListener(object: RecyclerAdapter.OnItemClickListener{
+            override fun onClick(v: View, position: Int){
+                clickedPosition = position
                 Log.d("position : ", clickedPosition.toString())
             }
         })
-//        recyclerAdapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
-
-        getData(coinList, recyclerAdapter)
+        getDataFromRetrofit(retrofitRecyclerAdapter)
 
         binding.btnRefresh.setOnClickListener {
-//            val state = binding.recyclerView.layoutManager?.onSaveInstanceState()
-            getData(coinList, recyclerAdapter)
-//            binding.recyclerView.layoutManager?.onRestoreInstanceState(state)
-            binding.recyclerView.scrollToPosition(clickedPosition)
+            getDataFromRetrofit(retrofitRecyclerAdapter)
         }
 
-        Log.d("infoList", infoList.toString())
-        getDataFromRetrofit()
     }
 
-    private fun getDataFromRetrofit(){
+    private fun getDataFromRetrofit(recyclerAdapter: RecyclerAdapter) {
         retrofitService.getData().enqueue(object : retrofit2.Callback<ResponseModel>{
             override fun onResponse(call: Call<ResponseModel>, response: Response<ResponseModel>) {
+                keyList.clear()
+                infoList.clear()
                 Log.d("Retrofit_success", response.body()?.data.toString())
+                val json = JSONObject(response.body()?.data.toString())
+                val keys = json.keys()
+                while(keys.hasNext()){
+//                    Log.d("Retrofit_keys", keys.next().toString())
+                    keyList.add(keys.next().toString())
+                }
+                Log.d("Retrofit_key", keyList.toString())
+                for (key in keyList){
+                    if (key != "date"){
+                        val result = json.getJSONObject(key)
+                        Log.d("Retrofit_result", "$key : $result")
+                        val map = stringToMap(result.toString())
+                        Log.d("Retrofit_map", "$key : $map")
+                        infoList.add(map)
+                    }
+                }
+                recyclerAdapter.notifyDataSetChanged()
+                setUpRecyclerView(recyclerAdapter)
             }
 
             override fun onFailure(call: Call<ResponseModel>, t: Throwable) {
@@ -76,7 +101,8 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun getData(coinList: Array<String>, recyclerAdapter: RecyclerAdapter) {
+
+    private fun getDataFromVolley(coinList: MutableList<String>, recyclerAdapter: RecyclerAdapter) {
         val url = "https://api.bithumb.com/public/ticker/ALL_KRW"
 
         val jsonRequest = JsonObjectRequest(
@@ -86,15 +112,15 @@ class MainActivity : AppCompatActivity() {
                 for (x in coinList){
                     val data = response.getJSONObject("data").get(x)
                     val map = stringToMap(data.toString())
-                    addMapToList(map)
-                    Log.d("$x : ", "$data + ${data.javaClass.name}")
-                    Log.d("map", map.toString())
+                    addMapToInfoList(map)
+                    Log.d("Volley_result", "$x : $data + ${data.javaClass.name}")
+                    Log.d("Volly_map", map.toString())
                 }
                 recyclerAdapter.notifyDataSetChanged()
                 setUpRecyclerView(recyclerAdapter)
             },
             com.android.volley.Response.ErrorListener { error ->
-                Log.d("Volley", error.toString()) })
+                Log.d("Volley_error", error.toString()) })
         val queue = Volley.newRequestQueue(this)
         queue.add(jsonRequest)
     }
@@ -102,9 +128,10 @@ class MainActivity : AppCompatActivity() {
     private fun setUpRecyclerView(recyclerAdapter: RecyclerAdapter) {
         binding.recyclerView.adapter = recyclerAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.scrollToPosition(clickedPosition)
     }
 
-    private fun addMapToList(map: Map<String, String>) {
+    private fun addMapToInfoList(map: Map<String, String>) {
         infoList.add(map)
     }
 
