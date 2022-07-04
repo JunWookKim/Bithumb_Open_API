@@ -5,11 +5,12 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.android.volley.Request
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
+import androidx.room.Room
 import com.example.bithumb_open_api.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Response
@@ -17,42 +18,20 @@ import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
     private val binding by lazy{ActivityMainBinding.inflate(layoutInflater)}
-    private val coinList = mutableListOf("BTC", "ETH", "ETC", "XRP", "BCH", "QTUM", "BTG", "EOS", "ICX",
-    "TRX", "ELF", "OMG", "KNC", "GLM", "ZIL", "WAXP", "POWR", "LRC", "STEEM", "STRAX", "ZRX",
-    "REP", "SNT", "ADA", "CTXC", "BAT", "THETA", "LOOM", "WAVES", "LINK", "ENJ", "VET", "MTL",
-    "IOST", "TMTG", "QKC", "ATOLO", "AMO", "BSV", "ORBS", "TFUEL", "VALOR", "CON", "ANKR", "MIX",
-    "CRO", "FX", "CHR", "MBL", "MXC", "FCT2", "TRV", "DAD", "WOM", "SOC", "BOA", "MEV", "SXP",
-    "COS", "EL", "BASIC", "HIVE", "XPR", "VRA", "FIT", "EGG", "BORA", "ARPA", "CTC", "APM", "CKB",
-    "AERGO", "ANW", "CENNZ", "EVZ", "CYCLUB", "SRM", "QTCON", "UNI", "YFI", "UMA", "AAVE", "COMP",
-    "REN", "BAL", "RSR", "NMR", "RLC", "UOS", "SAND", "GOM2", "BEL", "OBSR", "ORC", "POLA", "AWO",
-    "ADP", "DVI", "GHX", "MIR", "MVC", "BLY", "WOZX", "ANV", "GRT", "MM", "BIOT", "XNO", "SNX",
-    "SOFI", "COLA", "OXT", "LINA", "MAP", "AQT", "PLA", "WIKEN", "CTSI", "MANA", "LPT", "MKR",
-    "SUSHI", "ASM", "PUNDIX", "CELR", "ARW", "FRONT", "RLY", "OCEAN", "BFC", "ALICE", "OGN", "COTI",
-    "CAKE", "BNT", "XVS", "SWAP", "CHZ", "AXS", "DAO", "SIX", "DAI", "MATIC", "WOO", "ACH", "VELO",
-    "XLM", "VSYS", "IPX", "WICC", "ONT", "META", "KLAY", "ONG", "ALGO", "JST", "XTZ", "MLK", "WEMIX",
-    "DOT", "ATOM", "SSX", "TEMCO", "HIBS", "DOGE", "KSM", "CTK", "XYM", "BNB", "NFT", "SUN", "XEC",
-    "PCI", "SOL", "EGLD", "GO", "DFA", "C98", "MED", "1INCH", "BOBA", "GALA", "BTT", "EFI", "JASMY",
-    "TITAN", "REQ", "CSPR", "AVAX", "TDROP", "SPRT", "NPT", "REI", "T", "MBX", "GMT")
+
     var keyList = mutableListOf<String>()
     var infoList = mutableListOf(mapOf<String, String>())
     var clickedPosition = 0
     val retrofitService = IRetrofitService.create()
 
+    lateinit var db : AppDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-//        val recyclerAdapter = RecyclerAdapter(coinList, infoList)
-//        recyclerAdapter.setItemClickListener(object: RecyclerAdapter.OnItemClickListener{
-//            override fun onClick(v: View, positon: Int) {
-//                clickedPosition = positon
-//                Log.d("position : ", clickedPosition.toString())
-//            }
-//        })
-//        getDataFromVolley(coinList, recyclerAdapter)
-//        binding.btnRefresh.setOnClickListener {
-//            getDataFromVolley(coinList, recyclerAdapter)
-//        }
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "info_table")
+            .build()
 
         val retrofitRecyclerAdapter = RecyclerAdapter(keyList, infoList)
         retrofitRecyclerAdapter.setItemClickListener(object: RecyclerAdapter.OnItemClickListener{
@@ -66,7 +45,6 @@ class MainActivity : AppCompatActivity() {
         binding.btnRefresh.setOnClickListener {
             getDataFromRetrofit(retrofitRecyclerAdapter)
         }
-
     }
 
     private fun getDataFromRetrofit(recyclerAdapter: RecyclerAdapter) {
@@ -78,7 +56,6 @@ class MainActivity : AppCompatActivity() {
                 val json = JSONObject(response.body()?.data.toString())
                 val keys = json.keys()
                 while(keys.hasNext()){
-//                    Log.d("Retrofit_keys", keys.next().toString())
                     keyList.add(keys.next().toString())
                 }
                 Log.d("Retrofit_key", keyList.toString())
@@ -91,6 +68,13 @@ class MainActivity : AppCompatActivity() {
                         infoList.add(map)
                     }
                 }
+
+//                CoroutineScope(Dispatchers.IO).launch {
+//                    db.priceDao().insertInfo(Info(keyList[0], infoList[0]["opening_price"]!!, infoList[0]["closing_price"]!!, infoList[0]["min_price"]!!, infoList[0]["max_price"]!!,
+//                        infoList[0]["units_traded"]!!, infoList[0]["acc_trade_value"]!!, infoList[0]["units_traded_24H"]!!, infoList[0]["acc_traded_24H"]!!, infoList[0]["fluctate_24H"]!!,
+//                        infoList[0]["fluctate_rate_24H"]!!, infoList[0]["prev_closing_price"]!!, infoList[0]["date"]!!))
+//                }
+
                 recyclerAdapter.notifyDataSetChanged()
                 setUpRecyclerView(recyclerAdapter)
             }
@@ -101,38 +85,17 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-
-    private fun getDataFromVolley(coinList: MutableList<String>, recyclerAdapter: RecyclerAdapter) {
-        val url = "https://api.bithumb.com/public/ticker/ALL_KRW"
-
-        val jsonRequest = JsonObjectRequest(
-            Request.Method.GET, url, null,
-            com.android.volley.Response.Listener<JSONObject> { response ->
-                infoList.clear()
-                for (x in coinList){
-                    val data = response.getJSONObject("data").get(x)
-                    val map = stringToMap(data.toString())
-                    addMapToInfoList(map)
-                    Log.d("Volley_result", "$x : $data + ${data.javaClass.name}")
-                    Log.d("Volly_map", map.toString())
-                }
-                recyclerAdapter.notifyDataSetChanged()
-                setUpRecyclerView(recyclerAdapter)
-            },
-            com.android.volley.Response.ErrorListener { error ->
-                Log.d("Volley_error", error.toString()) })
-        val queue = Volley.newRequestQueue(this)
-        queue.add(jsonRequest)
-    }
-
     private fun setUpRecyclerView(recyclerAdapter: RecyclerAdapter) {
         binding.recyclerView.adapter = recyclerAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.scrollToPosition(clickedPosition)
     }
 
-    private fun addMapToInfoList(map: Map<String, String>) {
-        infoList.add(map)
+    private fun updateDB(){
+        CoroutineScope(Dispatchers.IO).launch {
+            Log.d("DB", db.priceDao().getAll().toString())
+            //TODO DB에 있는 시각과 현재 시각비교후 DB Update문 작성
+        }
     }
 
     private fun stringToMap(string: String): Map<String, String> {

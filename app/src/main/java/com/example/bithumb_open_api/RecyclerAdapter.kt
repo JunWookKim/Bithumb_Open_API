@@ -36,7 +36,7 @@ class RecyclerAdapter(private val keyList : MutableList<String>, private var inf
     }
 
     interface OnItemClickListener{
-        fun onClick(v: View, positon: Int)
+        fun onClick(v: View, position: Int)
     }
 
     fun setItemClickListener(onItemClickListener: OnItemClickListener){
