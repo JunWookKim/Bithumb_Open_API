@@ -31,7 +31,6 @@ class RecyclerAdapter(private val keyList : MutableList<String>, private var inf
         }
         holder.itemView.setOnClickListener {
             itemClickListener.onClick(it, holder.layoutPosition)
-//            Log.d("holder position : ", holder.layoutPosition.toString())
         }
     }
 

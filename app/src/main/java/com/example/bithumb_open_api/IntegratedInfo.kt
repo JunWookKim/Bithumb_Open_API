@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "info_table")
-data class Info(
+data class IntegratedInfo(
     @PrimaryKey @ColumnInfo(name = "name")
     val name : String,
     @ColumnInfo(name = "opening_price")
@@ -30,6 +30,6 @@ data class Info(
     val fluctateRate24H: String?,
     @ColumnInfo(name = "prev_closing_price")
     val prevClosing: String?,
-//    @ColumnInfo(name = "date")
-//    val date: String?
+    @ColumnInfo(name = "date")
+    val date: Long?
 )
