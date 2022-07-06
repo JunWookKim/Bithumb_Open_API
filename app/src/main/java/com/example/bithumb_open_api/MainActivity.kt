@@ -1,8 +1,10 @@
 package com.example.bithumb_open_api
 
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.util.rangeTo
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -23,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     var clickedPosition = 0
     var date = 0L
     private val retrofitService = IRetrofitService.create()
+    var lastClickedTime = 0L
 
     private lateinit var db : AppDatabase
 
@@ -41,6 +44,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        //CoroutineScope 생성 (Dispatchers IO)
         CoroutineScope(Dispatchers.IO).launch {
             db.priceDao().deleteAll()
             getDataFromRetrofit()
@@ -48,36 +52,56 @@ class MainActivity : AppCompatActivity() {
                 db.priceDao().insertInfo(integratedInfoList[i])
             }
             Log.d("Coroutine", db.priceDao().getAll().toString())
-            Log.d("Coroutine", coroutineContext.toString())
+            Log.d("Coroutine IO", coroutineContext.toString())
 
             withContext(Dispatchers.Main){
                 setUpRecyclerView(retrofitRecyclerAdapter)
+                Log.d("Coroutine Main", coroutineContext.toString())
             }
         }
 
         binding.btnRefresh.setOnClickListener {
-            CoroutineScope(Dispatchers.IO).launch {
-                getDataFromRetrofit()
+            //너무 빠르게 클릭할 경우 방지
+            if (SystemClock.elapsedRealtime() - lastClickedTime > 1000){
+                CoroutineScope(Dispatchers.IO).launch {
+                    launch {
+                        db.priceDao().deleteAll()
+                        Log.d("Coroutine_delete_db", db.priceDao().getAll().toString())
+                        getDataFromRetrofit()
+                        for(i in 0 until integratedInfoList.size){
+                            db.priceDao().insertInfo(integratedInfoList[i])
+                        }
+                        Log.d("Coroutine_insert_db", db.priceDao().getAll().toString())
+                        Log.d("Coroutine IO", coroutineContext.toString())
+                    }.join()
 
-//                val random = keyList.random()
-//                Log.d("DB", random + " " + db.priceDao().get(random).toString())
-
-                withContext(Dispatchers.Main){
-                    setUpRecyclerView(retrofitRecyclerAdapter)
+                    withContext(Dispatchers.Main){
+                        setUpRecyclerView(retrofitRecyclerAdapter)
+                        Log.d("Coroutine Main", coroutineContext.toString())
+                    }
                 }
             }
+            else{
+                Toast.makeText(this, "Too fast!", Toast.LENGTH_SHORT).show()
+            }
+            lastClickedTime = SystemClock.elapsedRealtime()
         }
     }
 
     private suspend fun getDataFromRetrofit() {
         keyList.clear()
         infoList.clear()
+        integratedInfoList.clear()
+        Log.d("Coroutine_list_clear", "${keyList.toString() + infoList.toString() + integratedInfoList.toString()}")
+
         val json = JSONObject(retrofitService.getData().data.toString())
         val keys = json.keys()
         while(keys.hasNext()){
             keyList.add(keys.next().toString())
         }
+        Log.d("Coroutine_set_keyList", keyList.toString())
         Log.d("Retrofit_key", keyList.toString())
+
         for (key in keyList){
             if (key == "date"){
                 date = json.getString(key).toLong()
@@ -90,6 +114,7 @@ class MainActivity : AppCompatActivity() {
                 infoList.add(map)
             }
         }
+        Log.d("Coroutine_set_infoList", infoList.toString())
 
         for(i in 0 until infoList.size){
             val model = IntegratedInfo(keyList[i], infoList[i]["opening_price"], infoList[i]["closing_price"], infoList[i]["min_price"], infoList[i]["max_price"],
