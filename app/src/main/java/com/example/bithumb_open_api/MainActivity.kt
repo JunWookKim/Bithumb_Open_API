@@ -6,6 +6,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
+import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,8 +48,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             refreshDB()
             setUpRecyclerView(recyclerAdapter)
         }
-
         binding.fab.setOnClickListener {
+            it.animate().rotationBy(360f)
             if (SystemClock.elapsedRealtime() - lastClickedTime > 1000){
                 launch {
                     getAndSetData()
