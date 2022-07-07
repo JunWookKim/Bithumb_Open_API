@@ -2,21 +2,21 @@ package com.example.bithumb_open_api
 
 import android.os.Bundle
 import android.os.SystemClock
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.util.rangeTo
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.room.Room
 import com.example.bithumb_open_api.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlin.coroutines.CoroutineContext
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), CoroutineScope {
     private val binding by lazy{ActivityMainBinding.inflate(layoutInflater)}
 
     var keyList = mutableListOf<String>()
@@ -25,7 +25,11 @@ class MainActivity : AppCompatActivity() {
     var clickedPosition = 0
     var date = 0L
     private val retrofitService = IRetrofitService.create()
-    var lastClickedTime = 0L
+    private var lastClickedTime = 0L
+
+    private val job = Job()
+    override val coroutineContext: CoroutineContext
+        get() =Dispatchers.Main + job
 
     private lateinit var db : AppDatabase
 
@@ -36,71 +40,82 @@ class MainActivity : AppCompatActivity() {
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "info_table")
             .build()
 
-        val retrofitRecyclerAdapter = RecyclerAdapter(keyList, infoList)
-        retrofitRecyclerAdapter.setItemClickListener(object: RecyclerAdapter.OnItemClickListener{
-            override fun onClick(v: View, position: Int){
-                clickedPosition = position
-                Log.d("position : ", clickedPosition.toString())
-            }
-        })
+        val recyclerAdapter = RecyclerAdapter(keyList, infoList)
 
-        //CoroutineScope 생성 (Dispatchers IO)
-        CoroutineScope(Dispatchers.IO).launch {
-            db.priceDao().deleteAll()
-            getDataFromRetrofit()
-            for(i in 0 until integratedInfoList.size){
-                db.priceDao().insertInfo(integratedInfoList[i])
-            }
-            Log.d("Coroutine", db.priceDao().getAll().toString())
-            Log.d("Coroutine IO", coroutineContext.toString())
-
-            withContext(Dispatchers.Main){
-                setUpRecyclerView(retrofitRecyclerAdapter)
-                Log.d("Coroutine Main", coroutineContext.toString())
-            }
+        launch {
+            getAndSetData()
+            refreshDB()
+            setUpRecyclerView(recyclerAdapter)
         }
 
-        binding.btnRefresh.setOnClickListener {
-            //너무 빠르게 클릭할 경우 방지
+        binding.fab.setOnClickListener {
             if (SystemClock.elapsedRealtime() - lastClickedTime > 1000){
-                CoroutineScope(Dispatchers.IO).launch {
-                    launch {
-                        db.priceDao().deleteAll()
-                        Log.d("Coroutine_delete_db", db.priceDao().getAll().toString())
-                        getDataFromRetrofit()
-                        for(i in 0 until integratedInfoList.size){
-                            db.priceDao().insertInfo(integratedInfoList[i])
-                        }
-                        Log.d("Coroutine_insert_db", db.priceDao().getAll().toString())
-                        Log.d("Coroutine IO", coroutineContext.toString())
-                    }.join()
-
-                    withContext(Dispatchers.Main){
-                        setUpRecyclerView(retrofitRecyclerAdapter)
-                        Log.d("Coroutine Main", coroutineContext.toString())
-                    }
+                launch {
+                    getAndSetData()
+                    refreshDB()
+                    searchInDB(binding.editTextSearch.text.toString())
                 }
             }
             else{
-                Toast.makeText(this, "Too fast!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Too fast!!", Toast.LENGTH_SHORT).show()
             }
             lastClickedTime = SystemClock.elapsedRealtime()
         }
+
+        binding.editTextSearch.addTextChangedListener(object : TextWatcher{
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+            }
+
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                searchInDB(p0.toString())
+            }
+
+            override fun afterTextChanged(p0: Editable?) {
+            }
+        })
     }
 
-    private suspend fun getDataFromRetrofit() {
-        keyList.clear()
-        infoList.clear()
-        integratedInfoList.clear()
-        Log.d("Coroutine_list_clear", "${keyList.toString() + infoList.toString() + integratedInfoList.toString()}")
+    //DB 에서 입력값 확인 후 해당 값만 출력
+    private fun searchInDB(search: String) {
+        launch {
+            val job = async(Dispatchers.IO){
+                val result = db.priceDao().getValueByName(search)
+                val searchedKey = mutableListOf<String>()
+                val searchedValue = mutableListOf<Map<String, String>>()
 
-        val json = JSONObject(retrofitService.getData().data.toString())
+                for (x in result){
+                    searchedKey.add(x.name)
+                    searchedValue.add(mapOf("opening_price" to x.opening.toString(), "closing_price" to x.closing.toString(), "min_price" to x.min.toString(), "max_price" to x.max.toString(), "units_traded" to x.unitTraded.toString(),
+                        "acc_trade_value" to x.tradedValue.toString(), "prev_closing_price" to x.prevClosing.toString(), "units_traded_24H" to x.unitTraded24H.toString(),
+                        "acc_trade_value_24H" to x.tradeValue24H.toString(), "fluctate_24H" to x.fluctate24H.toString(), "fluctate_rate_24H" to x.fluctateRate24H.toString()))
+                }
+                Log.d("Search", searchedKey.toString())
+                Log.d("Search", searchedValue.toString())
+                Pair(searchedKey, searchedValue)
+            }
+            launch{
+                val (searchedKey, searchValue) = job.await()
+                val searchedAdapter = RecyclerAdapter(searchedKey, searchValue)
+                setUpRecyclerView(searchedAdapter)
+            }
+        }
+    }
+
+    //DB 초기화 후 새로운 값으로 채우기
+    private suspend fun refreshDB() = withContext(Dispatchers.IO){
+        db.priceDao().deleteAll()
+        for (x in integratedInfoList){
+            db.priceDao().insertInfo(x)
+        }
+        Log.d("DB", db.priceDao().getAll().toString())
+    }
+
+    //Json 을 통해 keyList, infoList 채우기
+    private suspend fun parseJson(json : JSONObject) = withContext(Dispatchers.Default){
         val keys = json.keys()
         while(keys.hasNext()){
-            keyList.add(keys.next().toString())
+            keyList.add(keys.next())
         }
-        Log.d("Coroutine_set_keyList", keyList.toString())
-        Log.d("Retrofit_key", keyList.toString())
 
         for (key in keyList){
             if (key == "date"){
@@ -114,20 +129,38 @@ class MainActivity : AppCompatActivity() {
                 infoList.add(map)
             }
         }
-        Log.d("Coroutine_set_infoList", infoList.toString())
+    }
+    private suspend fun getAndSetData() = withContext(Dispatchers.IO){
+        //기존값이 들어있는 list 초기화
+        keyList.clear()
+        infoList.clear()
+        integratedInfoList.clear()
+//        Log.d("Coroutine_list_clear", "${keyList.toString() + infoList.toString() + integratedInfoList.toString()}")
 
-        for(i in 0 until infoList.size){
-            val model = IntegratedInfo(keyList[i], infoList[i]["opening_price"], infoList[i]["closing_price"], infoList[i]["min_price"], infoList[i]["max_price"],
-                infoList[i]["units_traded"], infoList[i]["acc_trade_value"], infoList[i]["units_traded_24H"], infoList[i]["acc_traded_24H"], infoList[i]["fluctate_24H"],
-                infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], date)
-            integratedInfoList.add(model)
+        var json : JSONObject
+        launch{
+            json = JSONObject(retrofitService.getData().data.toString())
+            parseJson(json)
+            //integratedInfoList 채우기
+            for(i in 0 until infoList.size){
+                val model = IntegratedInfo(keyList[i], infoList[i]["opening_price"], infoList[i]["closing_price"], infoList[i]["min_price"], infoList[i]["max_price"],
+                    infoList[i]["units_traded"], infoList[i]["acc_trade_value"], infoList[i]["units_traded_24H"], infoList[i]["acc_trade_value_24H"], infoList[i]["fluctate_24H"],
+                    infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], date)
+                integratedInfoList.add(model)
+            }
         }
     }
 
-    private fun setUpRecyclerView(recyclerAdapter: RecyclerAdapter) {
+    private suspend fun setUpRecyclerView(recyclerAdapter: RecyclerAdapter) = withContext(Dispatchers.Main){
         binding.recyclerView.adapter = recyclerAdapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
         binding.recyclerView.scrollToPosition(clickedPosition)
+        recyclerAdapter.setItemClickListener(object : RecyclerAdapter.OnItemClickListener{
+            override fun onClick(v: View, position: Int) {
+                clickedPosition = position
+                Log.d("position : ", clickedPosition.toString())
+            }
+        })
     }
 
     private fun stringToMap(string: String): Map<String, String> {

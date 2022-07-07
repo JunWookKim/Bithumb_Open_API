@@ -7,8 +7,8 @@ interface PriceDao{
     @Query("SELECT * FROM info_table")
     fun getAll() : List<IntegratedInfo>
 
-    @Query("SELECT * FROM info_table WHERE name = :name")
-    fun get(name: String) : IntegratedInfo
+    @Query("SELECT * FROM info_table WHERE name like '%'||:name||'%'")
+    fun getValueByName(name: String) : List<IntegratedInfo>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insertInfo(IntegratedInfo : IntegratedInfo)
