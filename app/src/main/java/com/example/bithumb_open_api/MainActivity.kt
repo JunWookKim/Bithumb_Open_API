@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     private val job = Job()
     override val coroutineContext: CoroutineContext
-        get() =Dispatchers.Main + job
+        get() = Dispatchers.IO + job
 
     private lateinit var db : AppDatabase
 
@@ -102,11 +102,11 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                 Log.d("Search", searchedValue.toString())
                 Pair(searchedKey, searchedValue)
             }
-            launch{
+
                 val (searchedKey, searchValue) = job.await()
                 val searchedAdapter = RecyclerAdapter(searchedKey, searchValue)
                 setUpRecyclerView(searchedAdapter)
-            }
+
         }
     }
 
@@ -157,6 +157,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                     infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], date)
                 integratedInfoList.add(model)
             }
+            Log.d("size", integratedInfoList.size.toString())
         }
     }
 
