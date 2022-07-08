@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     var infoList = mutableListOf(mapOf<String, String>())
     var integratedInfoList = mutableListOf<IntegratedInfo>()
     var clickedPosition = 0
+
     var date = 0L
     private val retrofitService = IRetrofitService.create()
     private var lastClickedTime = 0L
@@ -38,18 +39,24 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
+        //RoomDB 초기화
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "info_table")
             .build()
 
+        //RecyclerAdapter 초기화
         val recyclerAdapter = RecyclerAdapter(keyList, infoList)
 
+        //초기 실행 화면
         launch {
             getAndSetData()
             refreshDB()
             setUpRecyclerView(recyclerAdapter)
         }
+
+        //fab onClickListener
         binding.fab.setOnClickListener {
             it.animate().rotationBy(360f)
+            //빠르게 클릭하는것을 방지함
             if (SystemClock.elapsedRealtime() - lastClickedTime > 1000){
                 launch {
                     getAndSetData()
@@ -63,6 +70,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             lastClickedTime = SystemClock.elapsedRealtime()
         }
 
+        //searchBar 구현
         binding.editTextSearch.addTextChangedListener(object : TextWatcher{
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
             }
@@ -108,7 +116,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         for (x in integratedInfoList){
             db.priceDao().insertInfo(x)
         }
-        Log.d("DB", db.priceDao().getAll().toString())
+//        Log.d("DB", db.priceDao().getAll().toString())
     }
 
     //Json 을 통해 keyList, infoList 채우기

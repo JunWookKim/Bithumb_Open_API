@@ -3,6 +3,7 @@ package com.example.bithumb_open_api
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 
@@ -10,7 +11,7 @@ data class ResponseModel(
     @SerializedName("status")
     var status : String,
     @SerializedName("data")
-    var data : Object
+    var data : JsonElement
 )
 
 data class InfoModel(
