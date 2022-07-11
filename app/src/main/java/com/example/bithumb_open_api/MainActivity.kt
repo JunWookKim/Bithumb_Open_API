@@ -25,8 +25,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     var integratedInfoList = mutableListOf<IntegratedInfo>()
     var clickedPosition = 0
 
-    var date = 0L
-    lateinit var nowMinute : String
+    var nowTimestamp = 0L
     private val retrofitService = IRetrofitService.create()
     private var lastClickedTime = 0L
 
@@ -50,7 +49,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         //초기 실행 화면
         launch {
             getAndSetData()
-            setDB()
+            refreshDB()
             setUpRecyclerView(recyclerAdapter)
         }
 
@@ -101,7 +100,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     private fun searchInDB(search: String) {
         launch {
             val job = async(Dispatchers.IO){
-                val result = db.priceDao().getValueByName(search)
+                val result = db.priceDao().getLatestValueByName(search, db.priceDao().getMaxDate())
                 val searchedKey = mutableListOf<String>()
                 val searchedValue = mutableListOf<Map<String, String>>()
 
@@ -111,8 +110,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                         "acc_trade_value" to x.tradedValue.toString(), "prev_closing_price" to x.prevClosing.toString(), "units_traded_24H" to x.unitTraded24H.toString(),
                         "acc_trade_value_24H" to x.tradeValue24H.toString(), "fluctate_24H" to x.fluctate24H.toString(), "fluctate_rate_24H" to x.fluctateRate24H.toString()))
                 }
-//                Log.d("Search", searchedKey.toString())
-//                Log.d("Search", searchedValue.toString())
+                Log.d("Search", searchedKey.toString())
+                Log.d("Search", searchedValue.toString())
                 Pair(searchedKey, searchedValue)
             }
 
@@ -123,31 +122,35 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    private suspend fun setDB() = withContext(Dispatchers.IO){
-        for (x in integratedInfoList){
-            db.priceDao().insertInfo(x)
-        }
-    }
-
     //DB 초기화 후 새로운 값으로 채우기
     private suspend fun refreshDB() = withContext(Dispatchers.IO){
 //        db.priceDao().deleteAll()
-        val maxDateInDB = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate())
-        Log.d("max_date", maxDateInDB.toString())
-        Log.d("max_date_10", maxDateInDB.substring(18, 19))
+        //DB가 비어있을 경우 그냥 삽입
+        if (db.priceDao().getAll().isEmpty()){
+            Log.d("DB_empty_insert_first", db.priceDao().getAll().toString())
+            for (x in integratedInfoList){
+                db.priceDao().insertInfo(x)
+            }
+        }
 
-        Log.d("nowMinute", nowMinute)
-        //10분 단위가 지나지 않았다면 가장 최근 데이터를 삭제 후 삽입, 10분 단위가 지났다면 바로 데이터 삽입
-        if (maxDateInDB.substring(18, 19) >= nowMinute){
+        val maxDateInDB = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate())
+        Log.d("DB_max_date_before", maxDateInDB.toString())
+        Log.d("DB_max_date", maxDateInDB.toString().substring(0, 19))
+        Log.d("now_date", convertTimestampToDate(nowTimestamp)!!.substring(0, 19))
+
+        //10분 단위가 지나지 않았다면 가장 최근 데이터를 삭제
+        if (maxDateInDB.toString().substring(0, 19) == convertTimestampToDate(nowTimestamp)!!.substring(0, 19)){
+            Log.d("DB_delete", maxDateInDB)
             db.priceDao().deleteMaxDate((db.priceDao().getMaxDate()))
         }
+        //새로운 데이터 삽입
         for (x in integratedInfoList){
             db.priceDao().insertInfo(x)
         }
-
 //        Log.d("DB", db.priceDao().getAll().toString())
-        Log.d("DB_max_date", SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate()))
-        Log.d("DB", db.priceDao().getBTC().toString())
+        Log.d("DB_max_date_after", SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate()))
+        Log.d("DB_BTC", db.priceDao().getBTC().toString())
+        Log.d("-------------","--------------")
     }
 
     //Json 을 통해 keyList, infoList 채우기
@@ -159,9 +162,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
         for (key in keyList){
             if (key == "date"){
-                date = json.getString(key).toLong()
-                nowMinute = getMinute(convertTimestampToDate(date))
-                Log.d("now_minute", nowMinute)
+                nowTimestamp = json.getString(key).toLong()
+                Log.d("nowTimestamp", nowTimestamp.toString())
             }
             else{
                 val result = json.getJSONObject(key)
@@ -172,8 +174,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             }
         }
     }
-
-    private fun getMinute(date: String?): String = date!!.substring(18, 19)
 
     //Timestamp -> date 함수
     private fun convertTimestampToDate(timestamp: Long): String? {
@@ -198,7 +198,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             for(i in 0 until infoList.size){
                 val model = IntegratedInfo(keyList[i], infoList[i]["opening_price"], infoList[i]["closing_price"], infoList[i]["min_price"], infoList[i]["max_price"],
                     infoList[i]["units_traded"], infoList[i]["acc_trade_value"], infoList[i]["units_traded_24H"], infoList[i]["acc_trade_value_24H"], infoList[i]["fluctate_24H"],
-                    infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], date)
+                    infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], nowTimestamp)
                 integratedInfoList.add(model)
             }
             Log.d("size", integratedInfoList.size.toString())

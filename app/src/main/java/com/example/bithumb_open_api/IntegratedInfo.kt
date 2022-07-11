@@ -36,5 +36,6 @@ data class IntegratedInfo(
 
 data class BTC(
     val name : String,
+    val closing_price : String,
     val date : Long
 )

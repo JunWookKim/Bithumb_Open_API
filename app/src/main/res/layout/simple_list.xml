@@ -58,10 +58,10 @@
                     android:maxLines="1"
                     android:autoSizeMaxTextSize="20sp"
                     android:autoSizeTextType="uniform"
-                    android:text="저가"/>
+                    android:text="시가"/>
 
                 <TextView
-                    android:id="@+id/textMin"
+                    android:id="@+id/textOpening"
                     android:layout_marginLeft="10dp"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -90,10 +90,10 @@
                     android:maxLines="1"
                     android:autoSizeMaxTextSize="20sp"
                     android:autoSizeTextType="uniform"
-                    android:text="고가"/>
+                    android:text="종가"/>
 
                 <TextView
-                    android:id="@+id/textMax"
+                    android:id="@+id/textClosing"
                     android:layout_marginLeft="10dp"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

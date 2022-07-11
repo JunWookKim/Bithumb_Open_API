@@ -32,8 +32,8 @@ class RecyclerAdapter(private val keyList : MutableList<String>, private val inf
 //        }
         with(binding){
             textName.text = keyList[position]
-            textMin.text = infoList[position]["min_price"]
-            textMax.text = infoList[position]["max_price"]
+            textOpening.text = infoList[position]["opening_price"]
+            textClosing.text = infoList[position]["closing_price"]
             textTradeValue24H.text = infoList[position]["acc_trade_value_24H"]
         }
         holder.itemView.setOnClickListener {
