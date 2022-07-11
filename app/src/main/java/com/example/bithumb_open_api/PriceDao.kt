@@ -10,6 +10,12 @@ interface PriceDao{
     @Query("SELECT * FROM info_table WHERE name like '%'||:name||'%' and date = :date")
     fun getLatestValueByName(name: String, date: Long?) : List<IntegratedInfo>
 
+    @Query("SELECT closing_price FROM info_table WHERE name = :name")
+    fun getClosingPriceByName(name: String?) : List<String>
+
+    @Query("SELECT date FROM info_table WHERE name = :name")
+    fun getTimestampByName(name: String?) : List<Long>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertInfo(IntegratedInfo : IntegratedInfo)
 
@@ -23,7 +29,7 @@ interface PriceDao{
     fun getMaxDate() : Long?
 
     @Query("SELECT name, closing_price, date FROM info_table WHERE name = 'BTC'")
-    fun getBTC() : List<BTC>
+    fun getBTC() : List<SimpleInfo>
 
     @Query("DELETE FROM info_table WHERE date = :date")
     fun deleteMaxDate(date : Long?)

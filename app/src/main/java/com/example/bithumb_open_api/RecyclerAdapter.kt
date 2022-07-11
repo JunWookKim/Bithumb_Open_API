@@ -1,10 +1,10 @@
 package com.example.bithumb_open_api
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.example.bithumb_open_api.databinding.CardviewBinding
 import com.example.bithumb_open_api.databinding.SimpleListBinding
 
 class RecyclerAdapter(private val keyList : MutableList<String>, private val infoList : MutableList<Map<String, String>>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(){
@@ -38,6 +38,9 @@ class RecyclerAdapter(private val keyList : MutableList<String>, private val inf
         }
         holder.itemView.setOnClickListener {
             itemClickListener.onClick(it, holder.layoutPosition)
+            val intent = Intent(binding.root.context, DetailActivity::class.java)
+            intent.putExtra("name", keyList[position])
+            intent.run { binding.root.context.startActivity(this) }
         }
     }
 

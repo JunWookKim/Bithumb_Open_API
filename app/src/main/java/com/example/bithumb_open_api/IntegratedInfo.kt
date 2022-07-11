@@ -1,8 +1,10 @@
 package com.example.bithumb_open_api
 
+import android.os.Parcelable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.android.parcel.Parcelize
 
 @Entity(tableName = "info_table", primaryKeys = ["name", "date"])
 data class IntegratedInfo(
@@ -34,8 +36,9 @@ data class IntegratedInfo(
     val date: Long
 )
 
-data class BTC(
+@Parcelize
+data class SimpleInfo(
     val name : String,
     val closing_price : String,
     val date : Long
-)
+) : Parcelable

@@ -124,33 +124,34 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     //DB 초기화 후 새로운 값으로 채우기
     private suspend fun refreshDB() = withContext(Dispatchers.IO){
-//        db.priceDao().deleteAll()
-        //DB가 비어있을 경우 그냥 삽입
-        if (db.priceDao().getAll().isEmpty()){
-            Log.d("DB_empty_insert_first", db.priceDao().getAll().toString())
-            for (x in integratedInfoList){
-                db.priceDao().insertInfo(x)
-            }
-        }
-
-        val maxDateInDB = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate())
-        Log.d("DB_max_date_before", maxDateInDB.toString())
-        Log.d("DB_max_date", maxDateInDB.toString().substring(0, 19))
-        Log.d("now_date", convertTimestampToDate(nowTimestamp)!!.substring(0, 19))
-
-        //10분 단위가 지나지 않았다면 가장 최근 데이터를 삭제
-        if (maxDateInDB.toString().substring(0, 19) == convertTimestampToDate(nowTimestamp)!!.substring(0, 19)){
-            Log.d("DB_delete", maxDateInDB)
-            db.priceDao().deleteMaxDate((db.priceDao().getMaxDate()))
-        }
-        //새로운 데이터 삽입
+////        db.priceDao().deleteAll()
+//        //DB가 비어있을 경우 그냥 삽입
+//        if (db.priceDao().getAll().isEmpty()){
+//            Log.d("DB_empty_insert_first", db.priceDao().getAll().toString())
+//
+//        }
+//
+//        val maxDateInDB = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate())
+//        Log.d("DB_max_date_before", maxDateInDB.toString())
+//        Log.d("DB_max_date", maxDateInDB.toString().substring(0, 19))
+//        Log.d("now_date", convertTimestampToDate(nowTimestamp)!!.substring(0, 19))
+//
+//        //10분 단위가 지나지 않았다면 가장 최근 데이터를 삭제
+//        if (maxDateInDB.toString().substring(0, 19) == convertTimestampToDate(nowTimestamp)!!.substring(0, 19)){
+//            Log.d("DB_delete", maxDateInDB)
+//            db.priceDao().deleteMaxDate((db.priceDao().getMaxDate()))
+//        }
+//        //새로운 데이터 삽입
+//        for (x in integratedInfoList){
+//            db.priceDao().insertInfo(x)
+//        }
+////        Log.d("DB", db.priceDao().getAll().toString())
+//        Log.d("DB_max_date_after", SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate()))
+//        Log.d("DB_BTC", db.priceDao().getBTC().toString())
+//        Log.d("-------------","--------------")
         for (x in integratedInfoList){
             db.priceDao().insertInfo(x)
         }
-//        Log.d("DB", db.priceDao().getAll().toString())
-        Log.d("DB_max_date_after", SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate()))
-        Log.d("DB_BTC", db.priceDao().getBTC().toString())
-        Log.d("-------------","--------------")
     }
 
     //Json 을 통해 keyList, infoList 채우기
