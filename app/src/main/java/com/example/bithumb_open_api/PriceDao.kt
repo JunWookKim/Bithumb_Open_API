@@ -10,7 +10,7 @@ interface PriceDao{
     @Query("SELECT * FROM info_table WHERE name like '%'||:name||'%'")
     fun getValueByName(name: String) : List<IntegratedInfo>
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertInfo(IntegratedInfo : IntegratedInfo)
 
     @Update
@@ -18,6 +18,15 @@ interface PriceDao{
 
     @Query("DELETE FROM info_table")
     fun deleteAll()
+
+    @Query("SELECT max(date) FROM info_table")
+    fun getMaxDate() : Long?
+
+    @Query("SELECT name, date FROM info_table WHERE name = 'BTC'")
+    fun getBTC() : List<BTC>
+
+    @Query("DELETE FROM info_table WHERE date = :date")
+    fun deleteMaxDate(date : Long?)
 
 
 }

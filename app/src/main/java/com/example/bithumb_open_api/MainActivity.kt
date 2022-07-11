@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
-import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,6 +13,7 @@ import androidx.room.Room
 import com.example.bithumb_open_api.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
 import org.json.JSONObject
+import java.text.SimpleDateFormat
 import kotlin.coroutines.CoroutineContext
 
 
@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     var clickedPosition = 0
 
     var date = 0L
+    lateinit var nowMinute : String
     private val retrofitService = IRetrofitService.create()
     private var lastClickedTime = 0L
 
@@ -49,7 +50,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         //초기 실행 화면
         launch {
             getAndSetData()
-            refreshDB()
+            setDB()
             setUpRecyclerView(recyclerAdapter)
         }
 
@@ -82,6 +83,18 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             override fun afterTextChanged(p0: Editable?) {
             }
         })
+
+        binding.btnClearDB.setOnClickListener{
+            launch {
+                db.priceDao().deleteAll()
+            }
+        }
+        binding.btnShowDB.setOnClickListener{
+            launch{
+                Log.d("DB_BTC", db.priceDao().getBTC().toString())
+                Log.d("DB_get_all", db.priceDao().getAll().toString())
+            }
+        }
     }
 
     //DB 에서 입력값 확인 후 해당 값만 출력
@@ -98,8 +111,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                         "acc_trade_value" to x.tradedValue.toString(), "prev_closing_price" to x.prevClosing.toString(), "units_traded_24H" to x.unitTraded24H.toString(),
                         "acc_trade_value_24H" to x.tradeValue24H.toString(), "fluctate_24H" to x.fluctate24H.toString(), "fluctate_rate_24H" to x.fluctateRate24H.toString()))
                 }
-                Log.d("Search", searchedKey.toString())
-                Log.d("Search", searchedValue.toString())
+//                Log.d("Search", searchedKey.toString())
+//                Log.d("Search", searchedValue.toString())
                 Pair(searchedKey, searchedValue)
             }
 
@@ -110,13 +123,31 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    //DB 초기화 후 새로운 값으로 채우기
-    private suspend fun refreshDB() = withContext(Dispatchers.IO){
-        db.priceDao().deleteAll()
+    private suspend fun setDB() = withContext(Dispatchers.IO){
         for (x in integratedInfoList){
             db.priceDao().insertInfo(x)
         }
+    }
+
+    //DB 초기화 후 새로운 값으로 채우기
+    private suspend fun refreshDB() = withContext(Dispatchers.IO){
+//        db.priceDao().deleteAll()
+        val maxDateInDB = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate())
+        Log.d("max_date", maxDateInDB.toString())
+        Log.d("max_date_10", maxDateInDB.substring(18, 19))
+
+        Log.d("nowMinute", nowMinute)
+        //10분 단위가 지나지 않았다면 가장 최근 데이터를 삭제 후 삽입, 10분 단위가 지났다면 바로 데이터 삽입
+        if (maxDateInDB.substring(18, 19) >= nowMinute){
+            db.priceDao().deleteMaxDate((db.priceDao().getMaxDate()))
+        }
+        for (x in integratedInfoList){
+            db.priceDao().insertInfo(x)
+        }
+
 //        Log.d("DB", db.priceDao().getAll().toString())
+        Log.d("DB_max_date", SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(db.priceDao().getMaxDate()))
+        Log.d("DB", db.priceDao().getBTC().toString())
     }
 
     //Json 을 통해 keyList, infoList 채우기
@@ -129,16 +160,29 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         for (key in keyList){
             if (key == "date"){
                 date = json.getString(key).toLong()
+                nowMinute = getMinute(convertTimestampToDate(date))
+                Log.d("now_minute", nowMinute)
             }
             else{
                 val result = json.getJSONObject(key)
-                Log.d("Retrofit_result", "$key : $result")
+//                Log.d("Retrofit_result", "$key : $result")
                 val map = stringToMap(result.toString())
-                Log.d("Retrofit_map", "$key : $map")
+//                Log.d("Retrofit_map", "$key : $map")
                 infoList.add(map)
             }
         }
     }
+
+    private fun getMinute(date: String?): String = date!!.substring(18, 19)
+
+    //Timestamp -> date 함수
+    private fun convertTimestampToDate(timestamp: Long): String? {
+        val sdf = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss")
+        val date = sdf.format(timestamp)
+        Log.d("sdf", date.toString())
+        return date
+    }
+
     private suspend fun getAndSetData() = withContext(Dispatchers.IO){
         //기존값이 들어있는 list 초기화
         keyList.clear()
