@@ -28,11 +28,15 @@ interface PriceDao{
     @Query("SELECT max(date) FROM info_table")
     fun getMaxDate() : Long?
 
+    @Query("SELECT min(date) FROM info_table")
+    fun getMinDate() : Long?
+
     @Query("SELECT name, closing_price, date FROM info_table WHERE name = 'BTC'")
     fun getBTC() : List<SimpleInfo>
 
     @Query("DELETE FROM info_table WHERE date = :date")
-    fun deleteMaxDate(date : Long?)
+    fun deleteByDate(date : Long?)
 
-
+    @Query("SELECT * FROM info_table WHERE name = :name and date = :date")
+    fun getByNameAndDate(name: String, date: Long?) : IntegratedInfo
 }

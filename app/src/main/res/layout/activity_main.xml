@@ -8,6 +8,13 @@
     android:focusable="true"
     android:focusableInTouchMode="true">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"/>
     <androidx.constraintlayout.utils.widget.ImageFilterView
         android:id="@+id/imageSearch"
         android:layout_width="40dp"
@@ -17,7 +24,8 @@
         app:layout_constraintBottom_toBottomOf="@id/editTextSearch"
         app:layout_constraintRight_toLeftOf="@id/editTextSearch"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="@id/editTextSearch" />
+        app:layout_constraintTop_toTopOf="@id/editTextSearch"
+        />
 
     <EditText
         android:id="@+id/editTextSearch"
@@ -31,7 +39,8 @@
         app:layout_constraintBottom_toTopOf="@id/recyclerView"
         app:layout_constraintLeft_toRightOf="@id/imageSearch"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/toolBar"
+        />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -61,15 +70,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolBar"
         android:text="show DB"/>
     <Button
         android:id="@+id/btnClearDB"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintRight_toLeftOf="@id/btnShowDB"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolBar"
         android:layout_marginRight="10dp"
-        android:text="clear DB"/>
+        android:text="DELETE OLDEST"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

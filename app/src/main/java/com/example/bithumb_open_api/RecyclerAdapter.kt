@@ -55,7 +55,7 @@ class RecyclerAdapter(private val keyList : MutableList<String>, private val inf
     private lateinit var itemClickListener : OnItemClickListener
 
     override fun getItemCount(): Int {
-        return keyList.size
+        return infoList.size
     }
 
 }

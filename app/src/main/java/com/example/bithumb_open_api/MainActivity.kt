@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.room.Room
 import com.example.bithumb_open_api.databinding.ActivityMainBinding
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             getAndSetData()
             refreshDB()
             setUpRecyclerView(recyclerAdapter)
+            setUpAppBar(binding.toolBar)
         }
 
         //fab onClickListener
@@ -62,6 +64,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                     getAndSetData()
                     refreshDB()
                     searchInDB(binding.editTextSearch.text.toString())
+                    setUpAppBar(binding.toolBar)
                 }
             }
             else{
@@ -85,7 +88,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
         binding.btnClearDB.setOnClickListener{
             launch {
-                db.priceDao().deleteAll()
+                db.priceDao().deleteByDate(db.priceDao().getMinDate())
             }
         }
         binding.btnShowDB.setOnClickListener{
@@ -94,6 +97,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                 Log.d("DB_get_all", db.priceDao().getAll().toString())
             }
         }
+    }
+
+    private suspend fun setUpAppBar(toolBar: Toolbar) = withContext(Dispatchers.Main){
+        setSupportActionBar(toolBar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+        toolBar.title = convertTimestampToDate(nowTimestamp)
     }
 
     //DB 에서 입력값 확인 후 해당 값만 출력
@@ -165,8 +174,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             if (key == "date"){
                 nowTimestamp = json.getString(key).toLong()
                 Log.d("nowTimestamp", nowTimestamp.toString())
-            }
-            else{
+            } else{
                 val result = json.getJSONObject(key)
 //                Log.d("Retrofit_result", "$key : $result")
                 val map = stringToMap(result.toString())
