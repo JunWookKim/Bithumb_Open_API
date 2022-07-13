@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.bithumb_open_api.databinding.HistoryListBinding
 import com.example.bithumb_open_api.databinding.SimpleListBinding
 import java.text.SimpleDateFormat
+import java.util.*
 
 class DetailRecyclerAdapter(
     private val name: String?,
@@ -47,5 +48,5 @@ class DetailRecyclerAdapter(
 
     private lateinit var itemClickListener : OnItemClickListener
 
-    private fun timestampToDate(timestamp: Long) = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss").format(timestamp)
+    private fun timestampToDate(timestamp: Long) = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss", Locale.KOREA).format(timestamp)
 }

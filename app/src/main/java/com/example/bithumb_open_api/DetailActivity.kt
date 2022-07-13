@@ -2,9 +2,11 @@ package com.example.bithumb_open_api
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.room.Room
@@ -18,6 +20,10 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.*
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.coroutines.CoroutineContext
 
 class DetailActivity : AppCompatActivity(), CoroutineScope {
@@ -26,6 +32,14 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
     private val job = Job()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + job
+    var lastClickedTime = 0L
+    var nowTimestamp = 0L
+
+    var keyList = mutableListOf<String>()
+    var infoList = mutableListOf<Map<String, String>>()
+    var integratedInfoList = mutableListOf<IntegratedInfo>()
+
+    private val retrofitService = IRetrofitService.create()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,9 +57,76 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
             setUpToolBar(binding.toolBar, name)
         }
 
+        binding.fab.setOnClickListener {
+            it.animate().rotationBy(360f)
+            //빠르게 클릭하는것을 방지함
+            if (SystemClock.elapsedRealtime() - lastClickedTime > 1000){
+                launch {
+                    getAndSetData()
+                    refreshDB()
+                    val name = intent.getStringExtra("name")
+                    val closingPriceList = db.priceDao().getClosingPriceByName(name)
+                    val timestampList = db.priceDao().getTimestampByName(name)
+
+                    setUpChart(name, closingPriceList, timestampList)
+                    setUpRecyclerView(name, closingPriceList.asReversed(), timestampList.asReversed())
+                }
+            }
+            else{
+                Toast.makeText(this, "Too fast!!", Toast.LENGTH_SHORT).show()
+            }
+            lastClickedTime = SystemClock.elapsedRealtime()
+        }
     }
 
-    private fun setUpToolBar(toolBar: Toolbar, name: String?) {
+    private suspend fun refreshDB() = withContext(Dispatchers.IO){
+        for (x in integratedInfoList){
+            db.priceDao().insertInfo(x)
+        }
+    }
+
+    private suspend fun getAndSetData() = withContext(Dispatchers.IO){
+        //기존값이 들어있는 list 초기화
+        keyList.clear()
+        infoList.clear()
+        integratedInfoList.clear()
+
+        var json : JSONObject
+        launch{
+            json = JSONObject(retrofitService.getData().data.toString())
+            parseJson(json)
+            //integratedInfoList 채우기
+            for(i in 0 until infoList.size){
+                val model = IntegratedInfo(keyList[i], infoList[i]["opening_price"], infoList[i]["closing_price"], infoList[i]["min_price"], infoList[i]["max_price"],
+                    infoList[i]["units_traded"], infoList[i]["acc_trade_value"], infoList[i]["units_traded_24H"], infoList[i]["acc_trade_value_24H"], infoList[i]["fluctate_24H"],
+                    infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], nowTimestamp)
+                integratedInfoList.add(model)
+            }
+            Log.d("size", integratedInfoList.size.toString())
+        }
+    }
+
+    private suspend fun parseJson(json: JSONObject) = withContext(Dispatchers.Default){
+        val keys = json.keys()
+        while(keys.hasNext()){
+            keyList.add(keys.next())
+        }
+
+        for (key in keyList){
+            if (key == "date"){
+                nowTimestamp = json.getString(key).toLong()
+                Log.d("nowTimestamp", nowTimestamp.toString())
+            } else{
+                val result = json.getJSONObject(key)
+//                Log.d("Retrofit_result", "$key : $result")
+                val map = stringToMap(result.toString())
+//                Log.d("Retrofit_map", "$key : $map")
+                infoList.add(map)
+            }
+        }
+    }
+
+    private suspend fun setUpToolBar(toolBar: Toolbar, name: String?) = withContext(Dispatchers.Main){
         setSupportActionBar(toolBar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         toolBar.title = name
@@ -68,15 +149,30 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
 
     //Line Chart 생성 함수
     private suspend fun setUpChart(name: String?, closingPriceList: List<String>, timestampList: List<Long>) = withContext(Dispatchers.IO){
+        val dateTimestampList = mutableListOf<String?>()
+        for(x in timestampList){
+            dateTimestampList.add(SimpleDateFormat("yyyy-MM-dd, hh:mm:ss", Locale.KOREA).format(x).toString())
+        }
 
         with(binding.lineChart){
+            description.isEnabled = false
+            legend.isEnabled = false
+            marker = CustomMarkerView(context, R.layout.markerview)
+
             //x 축 설정
-            xAxis.position = XAxis.XAxisPosition.BOTTOM
+            with(xAxis){
+                position = XAxis.XAxisPosition.BOTTOM
+                valueFormatter = ChartCustomFormatter(dateTimestampList)
+                granularity = 1f
+            }
 
             //y 축 설정
-            val yAxis = axisLeft
-            yAxis.axisMinimum = closingPriceList.min().toFloat()
-            yAxis.axisMaximum = closingPriceList.max().toFloat()
+            with(axisLeft){
+                axisMinimum = closingPriceList.min().toFloat()
+                axisMaximum = closingPriceList.max().toFloat() + ((closingPriceList.max().toFloat() - closingPriceList.min().toFloat()) / 4)
+                setDrawLabels(true)
+            }
+            axisRight.isEnabled = false
         }
 
         //Data Entry 생성
@@ -111,15 +207,29 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
             val data = LineData(dataSets)
             binding.lineChart.data = data
         }
+        //        set1.setDrawValues(false) // value 값 출력 설정
+        binding.lineChart.setVisibleXRangeMaximum(3f)
+        set1.valueTextSize = 15f
+        set1.lineWidth = 2f
+        binding.lineChart.invalidate()
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when(item.itemId){
-            android.R.id.home -> {
-                finish()
-                return true
-            }
+    private fun stringToMap(string: String): Map<String, String> {
+        val processedString = string.replace("{", "").replace("}", "").replace("\"", "")
+        val map = processedString.split(",").associate{
+            val (left, right) = it.split(":")
+            left to right
         }
-        return super.onOptionsItemSelected(item)
+        return map
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem) = when(item.itemId) {
+        android.R.id.home -> {
+            finish()
+            true
+        }
+        else -> {
+            super.onOptionsItemSelected(item)
+        }
     }
 }

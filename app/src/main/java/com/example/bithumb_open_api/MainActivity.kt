@@ -15,6 +15,7 @@ import com.example.bithumb_open_api.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.coroutines.CoroutineContext
 
 
@@ -127,7 +128,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                 val (searchedKey, searchValue) = job.await()
                 val searchedAdapter = RecyclerAdapter(searchedKey, searchValue)
                 setUpRecyclerView(searchedAdapter)
-
         }
     }
 
@@ -186,7 +186,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     //Timestamp -> date 함수
     private fun convertTimestampToDate(timestamp: Long): String? {
-        val sdf = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss")
+        val sdf = SimpleDateFormat("yyyy-MM-dd, hh:mm:ss", Locale.KOREA)
         val date = sdf.format(timestamp)
         Log.d("sdf", date.toString())
         return date
