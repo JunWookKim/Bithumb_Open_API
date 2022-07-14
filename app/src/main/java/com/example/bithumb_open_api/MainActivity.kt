@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             getAndSetData()
             refreshDB()
             setUpRecyclerView(recyclerAdapter)
-            setUpAppBar(binding.toolBar)
+            setUpToolBar(binding.toolBar)
         }
 
         //fab onClickListener
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
                     getAndSetData()
                     refreshDB()
                     searchInDB(binding.editTextSearch.text.toString())
-                    setUpAppBar(binding.toolBar)
+                    setUpToolBar(binding.toolBar)
                 }
             }
             else{
@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    private suspend fun setUpAppBar(toolBar: Toolbar) = withContext(Dispatchers.Main){
+    private suspend fun setUpToolBar(toolBar: Toolbar) = withContext(Dispatchers.Main){
         setSupportActionBar(toolBar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         toolBar.title = convertTimestampToDate(nowTimestamp)
@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     //DB 에서 입력값 확인 후 해당 값만 출력
     private fun searchInDB(search: String) {
         launch {
-            val job = async(Dispatchers.IO){
+            val job = async{
                 val result = db.priceDao().getLatestValueByName(search, db.priceDao().getMaxDate())
                 val searchedKey = mutableListOf<String>()
                 val searchedValue = mutableListOf<Map<String, String>>()

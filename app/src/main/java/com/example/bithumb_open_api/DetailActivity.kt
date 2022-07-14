@@ -46,16 +46,15 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         setContentView(binding.root)
 
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "info_table").build()
-
+        val name = intent.getStringExtra("name")
         launch {
-            val name = intent.getStringExtra("name")
             val closingPriceList = db.priceDao().getClosingPriceByName(name)
             val timestampList = db.priceDao().getTimestampByName(name)
 
             setUpChart(name, closingPriceList, timestampList)
             setUpRecyclerView(name, closingPriceList.asReversed(), timestampList.asReversed())
-            setUpToolBar(binding.toolBar, name)
         }
+        setUpToolBar(binding.toolBar, name)
 
         binding.fab.setOnClickListener {
             it.animate().rotationBy(360f)
@@ -64,7 +63,6 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
                 launch {
                     getAndSetData()
                     refreshDB()
-                    val name = intent.getStringExtra("name")
                     val closingPriceList = db.priceDao().getClosingPriceByName(name)
                     val timestampList = db.priceDao().getTimestampByName(name)
 
@@ -79,7 +77,7 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    private suspend fun refreshDB() = withContext(Dispatchers.IO){
+    private fun refreshDB(){
         for (x in integratedInfoList){
             db.priceDao().insertInfo(x)
         }
@@ -126,7 +124,7 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    private suspend fun setUpToolBar(toolBar: Toolbar, name: String?) = withContext(Dispatchers.Main){
+    private fun setUpToolBar(toolBar: Toolbar, name: String?){
         setSupportActionBar(toolBar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         toolBar.title = name
@@ -148,7 +146,7 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
     }
 
     //Line Chart 생성 함수
-    private suspend fun setUpChart(name: String?, closingPriceList: List<String>, timestampList: List<Long>) = withContext(Dispatchers.IO){
+    private suspend fun setUpChart(name: String?, closingPriceList: List<String>, timestampList: List<Long>){
         val dateTimestampList = mutableListOf<String?>()
         for(x in timestampList){
             dateTimestampList.add(SimpleDateFormat("yyyy-MM-dd, hh:mm:ss", Locale.KOREA).format(x).toString())
@@ -179,7 +177,7 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         setData(name, closingPriceList, timestampList)
     }
 
-    private suspend fun setData(name: String?, closingPriceList: List<String>, timestampList: List<Long>) = withContext(Dispatchers.IO){
+    private suspend fun setData(name: String?, closingPriceList: List<String>, timestampList: List<Long>){
         Log.d("Chart_get_price", closingPriceList.toString())
         Log.d("Chart_get_time", timestampList.toString())
         val values = ArrayList<Entry>()
