@@ -155,24 +155,24 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         }
 
         with(binding.lineChart){
-            description.isEnabled = false
-            legend.isEnabled = false
-            marker = CustomMarkerView(context, R.layout.markerview)
+            description.isEnabled = false   // 하단 설명 여부 설정
+            legend.isEnabled = false        // 범례 여부 설정
+            marker = CustomMarkerView(context, R.layout.markerview) // marker 설정
 
             //x 축 설정
             with(xAxis){
                 position = XAxis.XAxisPosition.BOTTOM
-                valueFormatter = ChartCustomFormatter(dateTimestampList)
-                granularity = 1f
+                valueFormatter = ChartCustomFormatter(dateTimestampList)    // valueFormatter 설정
+                granularity = 1f    // 간격 설정
             }
 
             //y 축 설정
             with(axisLeft){
-                axisMinimum = closingPriceList.min().toFloat()
-                axisMaximum = closingPriceList.max().toFloat() + ((closingPriceList.max().toFloat() - closingPriceList.min().toFloat()) / 4)
-                setDrawLabels(true)
+                axisMinimum = closingPriceList.min().toFloat()  // 최소값 설정
+                axisMaximum = closingPriceList.max().toFloat() + ((closingPriceList.max().toFloat() - closingPriceList.min().toFloat()) / 4)    // 최댓값 설정
+                setDrawLabels(true) // 라펠 여부 설정
             }
-            axisRight.isEnabled = false
+            axisRight.isEnabled = false //y 축 우측값 여부 설정
         }
 
         //Data Entry 생성
@@ -184,7 +184,6 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         Log.d("Chart_get_time", timestampList.toString())
         val values = ArrayList<Entry>()
         for (i in closingPriceList.indices){
-//            values.add(Entry(timestampList[i].toFloat(), closingPriceList[i].toFloat()))
             values.add(Entry(i.toFloat(), closingPriceList[i].toFloat()))
         }
 
