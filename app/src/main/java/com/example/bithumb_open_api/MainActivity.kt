@@ -1,6 +1,7 @@
 package com.example.bithumb_open_api
 
 import android.os.Bundle
+import android.os.Parcelable
 import android.os.SystemClock
 import android.text.Editable
 import android.text.TextWatcher
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         get() = Dispatchers.IO + job
 
     private lateinit var db : AppDatabase
+    var recyclerViewState : Parcelable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +49,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
         //RecyclerAdapter 초기화
         val recyclerAdapter = RecyclerAdapter(keyList, infoList)
+        binding.recyclerView.adapter = recyclerAdapter
+        binding.recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
 
         //초기 실행 화면
         launch {
@@ -62,9 +66,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             //빠르게 클릭하는것을 방지함
             if (SystemClock.elapsedRealtime() - lastClickedTime > 1000){
                 launch {
+                    recyclerViewState = binding.recyclerView.layoutManager?.onSaveInstanceState()
                     getAndSetData()
                     refreshDB()
-                    searchInDB(binding.editTextSearch.text.toString())
+                    searchInDB(binding.editTextSearch.text.toString(), recyclerAdapter)
                     setUpToolBar(binding.toolBar)
                 }
             }
@@ -80,7 +85,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             }
 
             override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                searchInDB(p0.toString())
+                launch { searchInDB(p0.toString(), recyclerAdapter) }
             }
 
             override fun afterTextChanged(p0: Editable?) {
@@ -107,28 +112,21 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     }
 
     //DB 에서 입력값 확인 후 해당 값만 출력
-    private fun searchInDB(search: String) {
-        launch {
-            val job = async{
-                val result = db.priceDao().getLatestValueByName(search, db.priceDao().getMaxDate())
-                val searchedKey = mutableListOf<String>()
-                val searchedValue = mutableListOf<Map<String, String>>()
-
-                for (x in result){
-                    searchedKey.add(x.name)
-                    searchedValue.add(mapOf("opening_price" to x.opening.toString(), "closing_price" to x.closing.toString(), "min_price" to x.min.toString(), "max_price" to x.max.toString(), "units_traded" to x.unitTraded.toString(),
-                        "acc_trade_value" to x.tradedValue.toString(), "prev_closing_price" to x.prevClosing.toString(), "units_traded_24H" to x.unitTraded24H.toString(),
-                        "acc_trade_value_24H" to x.tradeValue24H.toString(), "fluctate_24H" to x.fluctate24H.toString(), "fluctate_rate_24H" to x.fluctateRate24H.toString()))
-                }
-                Log.d("Search", searchedKey.toString())
-                Log.d("Search", searchedValue.toString())
-                Pair(searchedKey, searchedValue)
+    private suspend fun searchInDB(search: String, recyclerAdapter: RecyclerAdapter) {
+        launch{
+            val result = db.priceDao().getLatestValueByName(search, db.priceDao().getMaxDate())
+            Log.d("searching", search + " " +convertTimestampToDate(db.priceDao().getMaxDate()!!))
+            Log.d("searching_BTC", db.priceDao().getBTC().toString())
+            keyList.clear()
+            infoList.clear()
+            for(x in result){
+                keyList.add(x.name)
+                infoList.add(mapOf("opening_price" to x.opening.toString(), "closing_price" to x.closing.toString(), "min_price" to x.min.toString(), "max_price" to x.max.toString(), "units_traded" to x.unitTraded.toString(),
+                    "acc_trade_value" to x.tradedValue.toString(), "prev_closing_price" to x.prevClosing.toString(), "units_traded_24H" to x.unitTraded24H.toString(),
+                    "acc_trade_value_24H" to x.tradeValue24H.toString(), "fluctate_24H" to x.fluctate24H.toString(), "fluctate_rate_24H" to x.fluctateRate24H.toString()))
             }
-
-                val (searchedKey, searchValue) = job.await()
-                val searchedAdapter = RecyclerAdapter(searchedKey, searchValue)
-                setUpRecyclerView(searchedAdapter)
-        }
+        }.join()
+        setUpRecyclerView(recyclerAdapter)
     }
 
     //DB 초기화 후 새로운 값으로 채우기
@@ -215,9 +213,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     }
 
     private suspend fun setUpRecyclerView(recyclerAdapter: RecyclerAdapter) = withContext(Dispatchers.Main){
-        binding.recyclerView.adapter = recyclerAdapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
-        binding.recyclerView.scrollToPosition(clickedPosition)
+        recyclerAdapter.notifyDataSetChanged()
+        binding.recyclerView.layoutManager?.onRestoreInstanceState(recyclerViewState)
         recyclerAdapter.setItemClickListener(object : RecyclerAdapter.OnItemClickListener{
             override fun onClick(v: View, position: Int) {
                 clickedPosition = position
