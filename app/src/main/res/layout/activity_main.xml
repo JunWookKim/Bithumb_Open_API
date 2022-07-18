@@ -12,9 +12,11 @@
         android:id="@+id/toolBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:titleTextColor="@color/toolbarTextColor"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"/>
+
     <androidx.constraintlayout.utils.widget.ImageFilterView
         android:id="@+id/imageSearch"
         android:layout_width="40dp"
@@ -56,7 +58,7 @@
     
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
-        app:backgroundTint="#E91E63"
+        app:backgroundTint="@color/refreshButtonBackgroundColor"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         android:src="@drawable/ic_baseline_refresh_24"

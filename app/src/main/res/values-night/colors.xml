@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="refreshButtonBackgroundColor">#E3E33F</color>
+    <color name="recyclerviewBackgroundColor">@color/white</color>
+    <color name="toolbarTextColor">@color/white</color>
+    <color name="textColor">@color/black</color>
+</resources>
