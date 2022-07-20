@@ -163,6 +163,10 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     //Json 을 통해 keyList, infoList 채우기
     private suspend fun parseJson(json : JSONObject) = withContext(Dispatchers.Default){
+        keyList.clear()
+        infoList.clear()
+        integratedInfoList.clear()
+
         val keys = json.keys()
         while(keys.hasNext()){
             keyList.add(keys.next())
@@ -203,6 +207,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             parseJson(json)
             //integratedInfoList 채우기
             for(i in 0 until infoList.size){
+                Log.d("info_size", "$i + ${keyList[i]}")
                 val model = IntegratedInfo(keyList[i], infoList[i]["opening_price"], infoList[i]["closing_price"], infoList[i]["min_price"], infoList[i]["max_price"],
                     infoList[i]["units_traded"], infoList[i]["acc_trade_value"], infoList[i]["units_traded_24H"], infoList[i]["acc_trade_value_24H"], infoList[i]["fluctate_24H"],
                     infoList[i]["fluctate_rate_24H"], infoList[i]["prev_closing_price"], nowTimestamp)

@@ -1,6 +1,7 @@
 package com.example.bithumb_open_api
 
 import android.content.res.Configuration
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.SystemClock
@@ -172,13 +173,25 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
                 setDrawLabels(true) // 라펠 여부 설정
             }
             axisRight.isEnabled = false //y 축 우측값 여부 설정
+
+            //dark mode text color 설정
+            when(resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK){
+                Configuration.UI_MODE_NIGHT_YES -> {
+                    xAxis.textColor = Color.WHITE
+                    axisLeft.textColor = Color.WHITE
+                }
+                Configuration.UI_MODE_NIGHT_NO -> {
+                    xAxis.textColor = Color.BLACK
+                    axisLeft.textColor = Color.BLACK
+                }
+            }
         }
 
         //Data Entry 생성
         setData(name, closingPriceList, timestampList)
     }
 
-    private suspend fun setData(name: String?, closingPriceList: List<String>, timestampList: List<Long>){
+    private fun setData(name: String?, closingPriceList: List<String>, timestampList: List<Long>){
         Log.d("Chart_get_price", closingPriceList.toString())
         Log.d("Chart_get_time", timestampList.toString())
         val values = ArrayList<Entry>()
@@ -209,6 +222,18 @@ class DetailActivity : AppCompatActivity(), CoroutineScope {
         binding.lineChart.setVisibleXRangeMaximum(3f)
         set1.valueTextSize = 15f
         set1.lineWidth = 2f
+
+        //dark mode text color 설정
+        when(resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK){
+            Configuration.UI_MODE_NIGHT_YES -> {
+                set1.color = Color.WHITE
+                set1.valueTextColor = Color.WHITE
+            }
+            Configuration.UI_MODE_NIGHT_NO -> {
+                set1.color = Color.BLACK
+                set1.valueTextColor = Color.BLACK
+            }
+        }
         binding.lineChart.invalidate()
     }
 
