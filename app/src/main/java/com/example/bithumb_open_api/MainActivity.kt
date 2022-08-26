@@ -105,6 +105,11 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
+    }
+
     private suspend fun setUpToolBar(toolBar: Toolbar) = withContext(Dispatchers.Main){
         setSupportActionBar(toolBar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
